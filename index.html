@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代購包貨整理工具</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Microsoft JhengHei",sans-serif;background:#f5f4f0;color:#1a1a18;font-size:14px}
+/* TOPBAR */
+.topbar{background:#fff;border-bottom:1px solid #e0dfd7;padding:0 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:8px;height:52px;flex-wrap:wrap}
+.topbar h1{font-size:15px;font-weight:700;white-space:nowrap}
+.proj-select{padding:5px 10px;border:1px solid #d0cfc7;border-radius:8px;font-size:13px;background:#faf9f5;cursor:pointer;max-width:180px}
+.search{padding:6px 11px;border:1px solid #d0cfc7;border-radius:8px;font-size:13px;outline:none;width:130px}
+.search:focus{border-color:#888}
+.topbtn{padding:6px 11px;border-radius:8px;border:1px solid #d0cfd7;background:#fff;cursor:pointer;font-size:12px;white-space:nowrap;color:#333}
+.topbtn:hover{background:#f0efe7}
+.topbtn.danger{color:#b03a2a;border-color:#f0c0b8}
+.topbtn.danger:hover{background:#fff0ee}
+.spacer{flex:1}
+/* SCREENS */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+/* HOME */
+.home-wrap{max-width:560px;margin:0 auto;padding:32px 16px}
+.home-wrap h2{font-size:18px;font-weight:600;margin-bottom:6px}
+.home-sub{font-size:13px;color:#999;margin-bottom:24px}
+.proj-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.proj-card{background:#fff;border:1px solid #e0dfd7;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+.proj-card:hover{border-color:#aaa}
+.proj-icon{font-size:24px}
+.proj-info{flex:1}
+.proj-name{font-size:14px;font-weight:600}
+.proj-meta{font-size:12px;color:#aaa;margin-top:2px}
+.proj-del-btn{font-size:12px;color:#c0392b;padding:5px 12px;border-radius:6px;border:1px solid #f0c0b8;background:#fff;cursor:pointer;flex-shrink:0}
+.proj-del-btn:hover{background:#fff0ee}
+.new-proj-box{background:#fff;border:1.5px dashed #c8c7bf;border-radius:12px;padding:24px 16px;cursor:pointer;text-align:center;transition:background .15s,border-color .15s}
+.new-proj-box:hover{background:#f5f4f0;border-color:#999}
+.np-icon{font-size:28px;margin-bottom:8px}
+.np-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.np-sub{font-size:12px;color:#aaa}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:24px;width:min(480px,92vw);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:13px;color:#aaa;margin-bottom:20px}
+.proj-name-input{width:100%;padding:9px 12px;border:1px solid #d0cfc7;border-radius:8px;font-size:14px;outline:none;margin-bottom:16px}
+.proj-name-input:focus{border-color:#888}
+.upload-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.upload-box{flex:1;min-width:160px;border:1.5px dashed #c8c7bf;border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:#faf9f5;transition:border-color .15s,background .15s}
+.upload-box:hover,.upload-box.drag{border-color:#888;background:#f0efe7}
+.upload-box.done{border-color:#4caf82;border-style:solid;background:#f0faf4}
+.upload-box input{display:none}
+.ub-icon{font-size:22px;margin-bottom:6px}
+.ub-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.ub-sub{font-size:11px;color:#aaa}
+.ub-file{font-size:11px;color:#4caf82;margin-top:4px;font-weight:500}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.btn{padding:8px 18px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid transparent;font-weight:500}
+.btn-ghost{background:#fff;border-color:#d0cfc7;color:#555}
+.btn-ghost:hover{background:#f0efe7}
+.btn-primary{background:#1a1a18;color:#fff}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-primary:not(:disabled):hover{opacity:.82}
+/* PROGRESS */
+.progress-bar-wrap{background:#fff;border-bottom:1px solid #e0dfd7;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.progress-track{flex:1;height:8px;background:#eeeee8;border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:#4caf82;border-radius:99px;transition:width .3s}
+.progress-label{font-size:12px;color:#888;white-space:nowrap}
+/* SUMMARY */
+.summary{display:flex;gap:8px;padding:14px 16px;flex-wrap:wrap}
+.stat{background:#fff;border-radius:10px;padding:11px 16px;flex:1;min-width:70px;border:1px solid #e0dfd7;text-align:center}
+.stat-num{font-size:20px;font-weight:500}
+.stat-lbl{font-size:11px;color:#888;margin-top:2px}
+/* FILTER */
+.filter-wrap{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.filter-label{font-size:11px;color:#aaa;margin-right:4px}
+.pill{font-size:11px;padding:3px 11px;border-radius:20px;cursor:pointer;border:1.5px solid;font-weight:500;transition:opacity .15s;user-select:none}
+.pill.off{opacity:.28}
+/* CARDS */
+.cards{padding:0 16px 40px}
+.card{background:#fff;border-radius:12px;border:1px solid #e0dfd7;margin-bottom:12px;overflow:hidden;transition:opacity .2s}
+.card.packed{opacity:.55}
+.card-head{padding:10px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #f0efe7;flex-wrap:wrap}
+.avatar{width:32px;height:32px;border-radius:50%;background:#dce8f7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#185fa5;flex-shrink:0}
+.pname{font-weight:500;font-size:14px}
+.auto-note-head{font-size:11px;background:#fff3cd;color:#7a5c10;border-radius:20px;padding:2px 8px;white-space:nowrap}
+.head-spacer{flex:1}
+.badge{font-size:11px;border-radius:20px;padding:3px 9px;font-weight:500;cursor:pointer;user-select:none;white-space:nowrap;border:1px solid #e0dfd7;background:#f5f4f0;color:#555}
+.badge:hover{filter:brightness(.95)}
+.badge.on-green{background:#e4f5ee;color:#1e7a4a;border-color:#b0dfc4}
+.badge.on-blue{background:#e8f0ff;color:#2a4aa5;border-color:#b0c4f0}
+.badge.on-orange{background:#fff0e0;color:#a05010;border-color:#f0c880}
+/* SHIP INFO */
+.ship-info{display:flex;flex-wrap:wrap;border-bottom:1px solid #f0efe7;background:#f8fdf9}
+.ship-info.no-ship{background:#fffcf5}
+.ship-field{padding:7px 13px;flex:1;min-width:130px;border-right:1px solid #f0efe7}
+.ship-field:last-child{border-right:none}
+.ship-field.empty-field{background:#fffcf0}
+.ship-key{font-size:10px;color:#aaa;margin-bottom:2px;letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between}
+.copy-btn{font-size:10px;background:transparent;border:none;cursor:pointer;color:#aaa;padding:0}
+.copy-btn:hover{color:#555}
+.ship-input{font-size:13px;font-weight:500;color:#1a1a18;border:none;outline:none;background:transparent;width:100%;padding:0;font-family:inherit}
+.ship-input::placeholder{color:#ccc;font-weight:400}
+.ship-input:focus{background:#fffbe8;border-radius:4px;padding:1px 4px;margin:-1px -4px}
+.no-ship-info{padding:8px 14px;background:#fff8f7;color:#b03a2a;font-size:12px;border-bottom:1px solid #f0efe7}
+.copy-all-row{padding:6px 13px;border-bottom:1px solid #f0efe7;background:#f8fdf9;display:flex;justify-content:flex-end}
+.copy-all-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #d0dfc7;background:#fff;cursor:pointer;color:#2a7a50}
+.copy-all-btn:hover{background:#e8f7ee}
+.save-ship-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #b0c4f0;background:#e8f0ff;cursor:pointer;color:#2a4aa5;font-weight:500}
+.save-ship-btn:hover{background:#d0e0ff}
+.pack-filter-pill{font-size:11px;padding:3px 14px;border-radius:20px;cursor:pointer;border:1.5px solid #ccc;font-weight:500;transition:all .15s;user-select:none;background:#fff;color:#555}
+.pack-filter-pill.pf-active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+/* NOTE ROW */
+.note-row{padding:6px 13px;border-bottom:1px solid #f0efe7;display:flex;align-items:center;gap:8px}
+.auto-note-tag{font-size:11px;background:#fff3cd;color:#7a5c10;border-radius:6px;padding:2px 8px;white-space:nowrap;flex-shrink:0}
+.note-input{flex:1;border:none;outline:none;font-size:12px;color:#555;background:transparent;font-family:inherit}
+.note-input::placeholder{color:#ccc}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:6px 13px;color:#999;font-weight:500;font-size:11px;background:#faf9f5;border-bottom:1px solid #f0efe7;letter-spacing:.04em}
+td{padding:7px 13px;border-bottom:1px solid #f7f6f2;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.ttag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.mono{font-family:ui-monospace,monospace;color:#888;font-size:12px;white-space:nowrap}
+.total-row td{background:#faf9f5;font-weight:500}
+/* WARN */
+.warn-bar{background:#fff8e8;border:1px solid #f0d080;border-radius:10px;padding:10px 14px;margin:0 16px 12px;font-size:12px;color:#7a5a10}
+.warn-bar summary{cursor:pointer;font-weight:500}
+.warn-bar ul{margin-top:6px;padding-left:16px;line-height:2}
+.empty{text-align:center;padding:50px;color:#aaa}
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;font-size:13px;padding:8px 20px;border-radius:99px;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media print{
+  .topbar,.progress-bar-wrap,.summary,.filter-wrap,.warn-bar,.modal-bg,
+  .copy-all-row,.copy-btn,.badge,.note-row{display:none!important}
+  body{background:#fff}.cards{padding:0}
+  .card{page-break-inside:avoid;margin-bottom:8px;border:1px solid #ccc}
+  .ship-input{border-bottom:1px solid #bbb}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1>📦 代購包貨</h1>
+  <select class="proj-select" id="projSelect" style="display:none" ></select>
+  <input class="search" id="searchBox" placeholder="搜尋姓名..."  style="display:none">
+  <input class="search" id="searchNote" placeholder="搜尋備註..."  style="display:none">
+  <div class="spacer"></div>
+  <button class="topbtn" id="btnNewProj"  style="display:none">＋ 新增專案</button>
+  <button class="topbtn" id="btnPrint" style="display:none">🖨 列印</button>
+  <button class="topbtn danger" id="btnDelProj" style="display:none">刪除此專案</button>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="screenHome">
+  <div class="home-wrap">
+    <h2>代購包貨整理工具</h2>
+    <p class="home-sub">每個月新增一個專案，自動整理包貨清單與收件資料</p>
+    <div class="proj-list" id="projList"></div>
+    <div class="new-proj-box" id="btnNewProjHome">
+      <div class="np-icon">＋</div>
+      <div class="np-title">新增本月專案</div>
+      <div class="np-sub">上傳包貨表單與收件資料</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="screen" id="screenMain">
+  <div class="progress-bar-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="progress-label" id="progressLabel"></span>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div id="warnArea"></div>
+  <div class="filter-wrap" id="filterWrap"></div>
+  <div class="cards" id="cards"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>新增月份專案</h3>
+    <p class="modal-sub">上傳當月包貨表單與收件資料，系統自動整理</p>
+    <input class="proj-name-input" id="projNameInput" placeholder="專案名稱，例如：2026年5月" maxlength="30">
+    <div class="upload-row">
+      <div class="upload-box" id="mBoxPacking">
+        <div class="ub-icon">📋</div>
+        <div class="ub-title">包貨表單</div>
+        <div class="ub-sub">各團 .xlsx</div>
+        <div class="ub-file" id="mNamePacking"></div>
+        <input type="file" id="mFilePacking" accept=".xlsx,.xls">
+      </div>
+      <div class="upload-box" id="mBoxShipping">
+        <div class="ub-icon">🚚</div>
+        <div class="ub-title">收件資料</div>
+        <div class="ub-sub">表單回覆 .xlsx（可略）</div>
+        <div class="ub-file" id="mNameShipping"></div>
+        <input type="file" id="mFileShipping" accept=".xlsx,.xls">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnModalCancel">取消</button>
+      <button class="btn btn-primary" id="btnCreate" disabled>建立專案</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+// ═══════════════════════════════════
+// FIREBASE INIT
+// ═══════════════════════════════════
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCs5dz3_LP2GofviJQ5CteZyRmCF6zPH_o",
+  authDomain: "packaging-661a3.firebaseapp.com",
+  projectId: "packaging-661a3",
+  storageBucket: "packaging-661a3.firebasestorage.app",
+  messagingSenderId: "96160204301",
+  appId: "1:96160204301:web:e0c95d86a7cca5f4913744"
+};
+const _app = initializeApp(firebaseConfig);
+const db = getFirestore(_app);
+
+// ═══════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════
+const TEAM_STYLES=[['#dce8f7','#185fa5'],['#d4f0e4','#0a5c3a'],['#fde8df','#9a3a1a'],['#f7dce8','#7a2040'],['#e8e4fc','#3c2e8a'],['#e4f0d0','#3b5c10'],['#feeac8','#7a4a0a'],['#fde0e0','#7a1c1c'],['#e8e8e0','#404040'],['#fdf0c8','#5c4a0a'],['#d0f0f7','#0a4a5c'],['#f0dce8','#5c0a3a']];
+const SKIP_SHEETS=['工作表1'];
+const SKIP_NAMES=['特典','巧','姊','我'];
+const SKIP_ITEMS=['運費','泡泡紙'];
+const SHIP_STATES=['待出貨','已出貨','已取件'];
+// 問題4: 包好/未包好切換已修正（badge click）
+// 問題5: 付款狀態 — 只在「未付款」↔「已付款」兩態切換（不自動循環到賣貨便）
+// 問題6: 賣貨便全額 → 已開賣場連結 ↔ 賣貨便全額
+const PAY_STATES=['未付款','已付款','賣貨便全額貨付','賣貨便半額貨付','已開賣場連結'];
+const PAY_CLS=['','on-green','on-orange','on-orange','on-blue'];
+
+// ═══════════════════════════════════
+// STORAGE — Firestore 雲端共用
+// ═══════════════════════════════════
+async function getProjects(){
+  try{
+    const snap=await getDocs(collection(db,'projects'));
+    const result={};
+    snap.forEach(d=>{result[d.id]=d.data();});
+    return result;
+  }catch(e){console.warn('getProjects',e);return {};}
+}
+async function saveProjectDoc(id,data){
+  try{await setDoc(doc(db,'projects',id),data);}catch(e){console.warn('saveProjectDoc',e);}
+}
+async function getState(pid){
+  try{
+    const snap=await getDoc(doc(db,'states',pid));
+    return snap.exists()?snap.data():{};
+  }catch(e){console.warn('getState',e);return {};}
+}
+async function saveState(pid,s){
+  try{await setDoc(doc(db,'states',pid),s);}catch(e){console.warn('saveState',e);}
+}
+async function removeProjectAndState(pid){
+  try{
+    await deleteDoc(doc(db,'projects',pid));
+    await deleteDoc(doc(db,'states',pid));
+  }catch(e){console.warn('removeProjectAndState',e);}
+}
+// 問題3: 儲存手動填入的收件資訊（綁定 FB帳號名稱 key）
+async function saveManualShip(fbName,shipData){
+  try{await setDoc(doc(db,'manual_ship',fbName),shipData);}catch(e){console.warn('saveManualShip',e);}
+}
+async function getManualShip(fbName){
+  try{
+    const snap=await getDoc(doc(db,'manual_ship',fbName));
+    return snap.exists()?snap.data():null;
+  }catch(e){console.warn('getManualShip',e);return null;}
+}
+
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2000);}
+
+// ═══════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ═══════════════════════════════════
+// HOME
+// ═══════════════════════════════════
+async function renderHome(){
+  showScreen('screenHome');
+  document.getElementById('projSelect').style.display='none';
+  document.getElementById('searchBox').style.display='none';
+  document.getElementById('searchNote').style.display='none';
+  document.getElementById('btnPrint').style.display='none';
+  document.getElementById('btnDelProj').style.display='none';
+  document.getElementById('btnNewProj').style.display='';
+
+  const projs=await getProjects();
+  const keys=Object.keys(projs).sort((a,b)=>b.localeCompare(a));
+  const list=document.getElementById('projList');
+  list.innerHTML='';
+  keys.forEach(id=>{
+    const p=projs[id];
+    const total=Object.keys(p.packing||{}).length;
+
+    const div=document.createElement('div');
+    div.className='proj-card';
+
+    const info=document.createElement('div');
+    info.style.display='flex';info.style.alignItems='center';info.style.gap='12px';info.style.flex='1';
+    info.innerHTML=
+      '<div class="proj-icon">📦</div>'+
+      '<div class="proj-info">'+
+        '<div class="proj-name">'+escH(p.name)+'</div>'+
+        '<div class="proj-meta">'+total+' 人・'+new Date(p.createdAt).toLocaleDateString('zh-TW')+'</div>'+
+      '</div>';
+    div.appendChild(info);
+
+    const delBtn=document.createElement('button');
+    delBtn.className='proj-del-btn';
+    delBtn.textContent='刪除';
+    delBtn.addEventListener('click',function(e){e.stopPropagation();confirmDelete(id);});
+    div.appendChild(delBtn);
+    div.addEventListener('click',function(){openProject(id);});
+    list.appendChild(div);
+  });
+}
+
+async function confirmDelete(id){
+  if(!confirm('確定刪除這個專案？此操作無法復原。')) return;
+  await removeProjectAndState(id);
+  toast('已刪除');
+  currentProjId=null;
+  await renderHome();
+}
+
+// ═══════════════════════════════════
+// MODAL
+// ═══════════════════════════════════
+let mPackingWb=null,mShippingWb=null;
+
+function openNewModal(){
+  mPackingWb=null;mShippingWb=null;
+  document.getElementById('projNameInput').value='';
+  document.getElementById('mNamePacking').textContent='';
+  document.getElementById('mNameShipping').textContent='';
+  document.getElementById('mBoxPacking').classList.remove('done');
+  document.getElementById('mBoxShipping').classList.remove('done');
+  document.getElementById('btnCreate').disabled=true;
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');}
+
+document.getElementById('btnModalCancel').addEventListener('click',closeModal);
+document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('btnCreate').addEventListener('click',createProject);
+
+function setupUpload(boxId,inputId,nameId,which){
+  const box=document.getElementById(boxId);
+  const inp=document.getElementById(inputId);
+  box.addEventListener('click',()=>inp.click());
+  box.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('drag');});
+  box.addEventListener('dragleave',()=>box.classList.remove('drag'));
+  box.addEventListener('drop',e=>{e.preventDefault();box.classList.remove('drag');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0],nameId,boxId,which);});
+  inp.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0],nameId,boxId,which);});
+}
+setupUpload('mBoxPacking','mFilePacking','mNamePacking','packing');
+setupUpload('mBoxShipping','mFileShipping','mNameShipping','shipping');
+
+function loadFile(file,nameId,boxId,which){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      if(which==='packing') mPackingWb=wb; else mShippingWb=wb;
+      document.getElementById(nameId).textContent='✓ '+file.name;
+      document.getElementById(boxId).classList.add('done');
+      document.getElementById('btnCreate').disabled=!mPackingWb;
+    }catch(err){alert('讀取失敗：'+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════════
+// PARSE
+// ═══════════════════════════════════
+function parseNotes(wb){
+  const result={};
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
+  rows.slice(1).forEach(row=>{
+    const name=row[0]!=null?String(row[0]).trim():'';
+    if(!name) return;
+    const notes=row.slice(1).filter(v=>v!=null&&String(v).trim()!=='').map(v=>String(v).trim());
+    if(notes.length) result[name]=notes.join('・');
+  });
+  return result;
+}
+
+function parsePacking(wb){
+  const result={};
+  wb.SheetNames.forEach(sn=>{
+    if(SKIP_SHEETS.includes(sn)) return;
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+    let cur=null;
+    rows.forEach(row=>{
+      const name=row[0]!=null?String(row[0]).trim():'';
+      const item=row[1]!=null?String(row[1]).trim():'';
+      const price=row[2];
+      const remark=row[5]!=null?String(row[5]).trim():'';
+      if(name==='姓名'||item==='品項') return;
+      if(name && SKIP_NAMES.some(k=>name.startsWith(k))){
+        if(cur && remark){
+          if(!result[cur]) return;
+          if(remark.includes('已付款') && !result[cur]._paid) result[cur]._paid=true;
+        }
+        return;
+      }
+      if(!name && !item && typeof price==='number'){
+        if(cur && remark){
+          if(!result[cur]) return;
+          if(remark.includes('已付款')) result[cur]._paid=true;
+          if(remark.includes('全額賣貨便')) result[cur]._payMode='全額賣貨便';
+          if(remark.includes('半額賣貨便')) result[cur]._payMode='半額賣貨便';
+        }
+        return;
+      }
+      if(!item) return;
+      if(SKIP_ITEMS.some(k=>item.startsWith(k))) return;
+      if(typeof price!=='number'||price<100) return;
+      if(name) cur=name;
+      if(!cur) return;
+      if(!result[cur]){result[cur]={_paid:false,_payMode:null};}
+      if(!result[cur][sn]) result[cur][sn]=[];
+      result[cur][sn].push({item,price});
+    });
+  });
+  const clean={};
+  Object.entries(result).forEach(([name,obj])=>{
+    const {_paid,_payMode,...teams}=obj;
+    clean[name]={teams,paidFromFile:_paid,payModeFromFile:_payMode};
+  });
+  return clean;
+}
+
+function parseShipping(wb){
+  if(!wb) return {};
+  const result={};
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null,cellDates:false});
+  rows.slice(1).forEach(row=>{
+    const fb=row[1]!=null?String(row[1]).trim():'';
+    if(!fb) return;
+    const rawNo=row[5]!=null?String(Math.round(Number(row[5]))):'';
+    const storeNo=rawNo&&/^\d+$/.test(rawNo)?rawNo.padStart(6,'0'):(row[5]?String(row[5]).trim():'');
+    result[fb]={real_name:row[2]?String(row[2]).trim():'',phone:row[3]?String(row[3]).trim():'',store:row[4]?String(row[4]).trim():'',store_no:storeNo};
+  });
+  return result;
+}
+
+// ═══════════════════════════════════
+// CREATE PROJECT
+// ═══════════════════════════════════
+async function createProject(){
+  const name=document.getElementById('projNameInput').value.trim()||'未命名專案';
+  const packing=parsePacking(mPackingWb);
+  const shipping=parseShipping(mShippingWb);
+  const notes=parseNotes(mPackingWb);
+  const id='proj_'+Date.now();
+  await saveProjectDoc(id,{name,packing,shipping,notes,createdAt:Date.now()});
+  closeModal();
+  toast('專案已建立');
+  openProject(id);
+}
+
+// ═══════════════════════════════════
+// OPEN PROJECT
+// ═══════════════════════════════════
+let currentProjId=null,currentProj=null,teamStyleMap={},teamsAll=[],active=new Set();
+// 問題7: 包好篩選狀態 'all'|'packed'|'unpacked'
+let packFilter='all';
+
+async function openProject(id){
+  const projs=await getProjects();
+  if(!projs[id]){renderHome();return;}
+  currentProjId=id;
+  currentProj=projs[id];
+
+  const st=await getState(id);
+  let stChanged=false;
+  Object.entries(currentProj.packing).forEach(([name,d])=>{
+    if(!st[name]){
+      st[name]={packed:false,shipStatus:0,note:'',ship:{}};
+      let payIdx=0;
+      if(d.payModeFromFile==='全額賣貨便') payIdx=2;
+      else if(d.payModeFromFile==='半額賣貨便') payIdx=3;
+      else if(d.paidFromFile) payIdx=1;
+      st[name].payStatus=payIdx;
+      stChanged=true;
+    }
+  });
+  if(stChanged) await saveState(id,st);
+  _stateCache=JSON.parse(JSON.stringify(st));
+
+  // 問題2: 預載所有人的手動收件資料到快取
+  await preloadManualShips(Object.keys(currentProj.packing));
+
+  document.getElementById('searchBox').style.display='';
+  document.getElementById('searchNote').style.display='';
+  document.getElementById('searchBox').value='';
+  document.getElementById('searchNote').value='';
+  document.getElementById('btnNewProj').style.display='';
+  document.getElementById('btnPrint').style.display='';
+
+  const delBtn=document.getElementById('btnDelProj');
+  delBtn.style.display='';
+  const newDelBtn=delBtn.cloneNode(true);
+  delBtn.parentNode.replaceChild(newDelBtn,delBtn);
+  newDelBtn.addEventListener('click',()=>confirmDelete(currentProjId));
+
+  const sel=document.getElementById('projSelect');
+  sel.style.display='';
+  const projs2=await getProjects();
+  sel.innerHTML=Object.entries(projs2).sort((a,b)=>b[0].localeCompare(a[0])).map(([pid,p])=>'<option value="'+pid+'"'+(pid===id?' selected':'')+'>'+escH(p.name)+'</option>').join('');
+  sel.onchange=function(){openProject(this.value);};
+
+  teamsAll=[];const seen=new Set();
+  Object.values(currentProj.packing).forEach(d=>Object.keys(d.teams).forEach(t=>{if(!seen.has(t)){seen.add(t);teamsAll.push(t);}}));
+  teamStyleMap={};teamsAll.forEach((t,i)=>{teamStyleMap[t]=TEAM_STYLES[i%TEAM_STYLES.length];});
+  active=new Set(teamsAll);
+  packFilter='all';
+
+  buildFilter();
+  showScreen('screenMain');
+  render();
+}
+
+function switchProject(id){openProject(id);}
+
+// ═══════════════════════════════════
+// 問題2+3: 手動收件資料快取
+// ═══════════════════════════════════
+let _manualShipCache={};  // { fbName: {real_name,phone,store,store_no} }
+
+async function preloadManualShips(names){
+  _manualShipCache={};
+  // batch fetch
+  await Promise.all(names.map(async name=>{
+    const data=await getManualShip(name);
+    if(data) _manualShipCache[name]=data;
+  }));
+}
+
+// ═══════════════════════════════════
+// FILTER
+// ═══════════════════════════════════
+function buildFilter(){
+  const el=document.getElementById('filterWrap');
+  el.innerHTML='<span class="filter-label">篩選：</span>';
+
+  // 問題7: 包好篩選按鈕
+  const packLabels=[['all','全部'],['unpacked','未包好'],['packed','已包好']];
+  packLabels.forEach(([val,label])=>{
+    const p=document.createElement('span');
+    p.className='pack-filter-pill'+(packFilter===val?' pf-active':'');
+    p.textContent=label;
+    p.addEventListener('click',()=>{
+      packFilter=val;
+      el.querySelectorAll('.pack-filter-pill').forEach(pp=>pp.classList.remove('pf-active'));
+      p.classList.add('pf-active');
+      render();
+    });
+    el.appendChild(p);
+  });
+
+  // 分隔
+  const sep=document.createElement('span');sep.style.color='#ccc';sep.style.margin='0 4px';sep.textContent='|';
+  el.appendChild(sep);
+  const lbl=document.createElement('span');lbl.className='filter-label';lbl.textContent='團別：';
+  el.appendChild(lbl);
+
+  teamsAll.forEach(t=>{
+    const [bg,txt]=teamStyleMap[t];
+    const p=document.createElement('span');
+    p.className='pill';p.style.background=bg;p.style.color=txt;p.style.borderColor=bg;p.textContent=t;
+    p.addEventListener('click',()=>{
+      if(active.has(t)){if(active.size>1){active.delete(t);p.classList.add('off');}}
+      else{active.add(t);p.classList.remove('off');}
+      render();
+    });
+    el.appendChild(p);
+  });
+}
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let _stateCache={};
+function ps(name){return _stateCache[name]||{packed:false,payStatus:0,shipStatus:0,note:'',ship:{}};}
+function setProp(name,key,val){
+  if(!_stateCache[name])_stateCache[name]={packed:false,payStatus:0,shipStatus:0,note:'',ship:{}};
+  _stateCache[name][key]=val;
+  saveState(currentProjId,_stateCache);
+}
+
+// ═══════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function initials(n){return n.replace(/[^\u4e00-\u9fa5a-zA-Z]/g,'').slice(0,2).toUpperCase()||n.slice(0,2);}
+
+// ═══════════════════════════════════
+// RENDER
+// ═══════════════════════════════════
+function render(){
+  const q=document.getElementById('searchBox').value.trim().toLowerCase();
+  const qn=document.getElementById('searchNote').value.trim().toLowerCase();
+  const st=_stateCache;
+
+  let entries=Object.entries(currentProj.packing).filter(([name,d])=>{
+    if(q && !name.toLowerCase().includes(q)) return false;
+    if(qn){
+      const autoNote=(currentProj.notes||{})[name]||'';
+      const manNote=(st[name]||{}).note||'';
+      if(!(autoNote.toLowerCase().includes(qn)||manNote.toLowerCase().includes(qn))) return false;
+    }
+    if(!Object.keys(d.teams).some(t=>active.has(t))) return false;
+    return true;
+  });
+
+  // 問題7: 包好篩選
+  if(packFilter==='packed') entries=entries.filter(([name])=>(st[name]||{}).packed);
+  if(packFilter==='unpacked') entries=entries.filter(([name])=>!(st[name]||{}).packed);
+
+  // stats
+  let totItems=0,totAmt=0,noShip=0,packedCount=0,paidCount=0;
+  entries.forEach(([name,d])=>{
+    const s=st[name]||{};
+    if(s.packed) packedCount++;
+    if(s.payStatus&&s.payStatus>0) paidCount++;
+    const dbShip=currentProj.shipping[name];
+    const ms=_manualShipCache[name];
+    if(!dbShip&&!ms) noShip++;
+    Object.entries(d.teams).forEach(([t,items])=>{if(!active.has(t))return;items.forEach(i=>{totItems++;totAmt+=i.price;});});
+  });
+
+  const total=entries.length;
+  const pct=total?Math.round(packedCount/total*100):0;
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('progressLabel').textContent='已包 '+packedCount+'/'+total+' 人（'+pct+'%）';
+
+  document.getElementById('summary').innerHTML=
+    '<div class="stat"><div class="stat-num">'+total+'</div><div class="stat-lbl">顧客人數</div></div>'+
+    '<div class="stat"><div class="stat-num">'+totItems+'</div><div class="stat-lbl">商品數量</div></div>'+
+    '<div class="stat"><div class="stat-num">NT$ '+totAmt.toLocaleString()+'</div><div class="stat-lbl">合計金額</div></div>'+
+    '<div class="stat"><div class="stat-num" style="color:#1e7a4a">'+paidCount+'</div><div class="stat-lbl">已付款</div></div>'+
+    '<div class="stat"><div class="stat-num" style="color:'+(noShip?'#c0392b':'#1e7a4a')+'">'+noShip+'</div><div class="stat-lbl">缺收件資料</div></div>';
+
+  const noShipNames=entries.filter(([name])=>{
+    const dbShip=currentProj.shipping[name];
+    const ms=_manualShipCache[name];
+    return !dbShip&&!ms;
+  }).map(([n])=>n);
+  document.getElementById('warnArea').innerHTML=noShipNames.length
+    ?'<details class="warn-bar"><summary>⚠️ '+noShipNames.length+' 人尚無收件資料</summary><ul>'+noShipNames.map(n=>'<li>'+escH(n)+'</li>').join('')+'</ul></details>':'';
+
+  if(!entries.length){document.getElementById('cards').innerHTML='<div class="empty">查無資料</div>';return;}
+
+  const cardsEl=document.getElementById('cards');
+  cardsEl.innerHTML='';
+  entries.forEach(([name,d])=>{
+    const rel=Object.entries(d.teams).filter(([t])=>active.has(t));
+    if(!rel.length) return;
+    const s=ps(name);
+    const dbShip=currentProj.shipping[name]||{};
+    const manualShip=_manualShipCache[name]||{};
+
+    // 問題2: 優先順序：手動快取 > 表單資料 > 空白
+    const sv={
+      real_name: manualShip.real_name || dbShip.real_name || '',
+      phone:     manualShip.phone     || dbShip.phone     || '',
+      store:     manualShip.store     || dbShip.store     || '',
+      store_no:  manualShip.store_no  || dbShip.store_no  || '',
+    };
+    const hasShipData=!!(currentProj.shipping[name]||_manualShipCache[name]);
+    const autoNote=(currentProj.notes||{})[name]||'';
+    const payStatus=s.payStatus||0;
+    const shipStatus=s.shipStatus||0;
+
+    let total=0;
+    const rows=rel.flatMap(([tn,items])=>items.map(it=>{
+      total+=it.price;
+      const [bg,txt]=teamStyleMap[tn]||['#eee','#333'];
+      return '<tr><td><span class="ttag" style="background:'+bg+';color:'+txt+'">'+escH(tn)+'</span></td><td>'+escH(it.item)+'</td><td class="mono">NT$ '+it.price.toLocaleString()+'</td></tr>';
+    }));
+
+    const card=document.createElement('div');
+    card.className='card'+(s.packed?' packed':'');
+    card.id='card_'+name;
+
+    // HEAD
+    const head=document.createElement('div');
+    head.className='card-head';
+    head.innerHTML=
+      '<div class="avatar">'+escH(initials(name))+'</div>'+
+      '<div class="pname">'+escH(name)+'</div>'+
+      (autoNote?'<span class="auto-note-head">📌 '+escH(autoNote)+'</span>':'')+
+      '<div class="head-spacer"></div>';
+
+    // 問題4: 包好 badge — toggle packed
+    const bPack=document.createElement('span');
+    bPack.className='badge'+(s.packed?' on-green':'');
+    bPack.textContent=s.packed?'✓ 已包好':'○ 未包好';
+    bPack.addEventListener('click',()=>{
+      const newVal=!ps(name).packed;
+      setProp(name,'packed',newVal);
+      bPack.className='badge'+(newVal?' on-green':'');
+      bPack.textContent=newVal?'✓ 已包好':'○ 未包好';
+      const cardEl=document.getElementById('card_'+name);
+      if(cardEl) cardEl.className='card'+(newVal?' packed':'');
+      // 如果有包好篩選，需要重新render
+      if(packFilter!=='all') render();
+    });
+    head.appendChild(bPack);
+
+    // 問題5+6: 付款 badge 邏輯
+    // 未付款(0) ↔ 已付款(1) 切換
+    // 賣貨便全額(2) ↔ 已開賣場連結(4) 切換
+    // 賣貨便半額(3) → 循環到(0)
+    const bPay=document.createElement('span');
+    function updatePayBadge(idx){
+      bPay.className='badge '+PAY_CLS[idx];
+      bPay.textContent=PAY_STATES[idx];
+    }
+    updatePayBadge(payStatus);
+    bPay.addEventListener('click',()=>{
+      let cur=ps(name).payStatus||0;
+      let next;
+      if(cur===0) next=1;           // 未付款 → 已付款
+      else if(cur===1) next=0;       // 已付款 → 未付款
+      else if(cur===2) next=4;       // 賣貨便全額 → 已開賣場連結
+      else if(cur===4) next=2;       // 已開賣場連結 → 賣貨便全額
+      else if(cur===3) next=0;       // 賣貨便半額 → 未付款
+      else next=0;
+      setProp(name,'payStatus',next);
+      updatePayBadge(next);
+    });
+    head.appendChild(bPay);
+
+    // 出貨狀態 badge
+    const bShip=document.createElement('span');
+    bShip.className='badge '+(['','on-blue','on-green'][shipStatus]);
+    bShip.textContent='→ '+SHIP_STATES[shipStatus];
+    bShip.addEventListener('click',()=>{
+      const next=(ps(name).shipStatus+1)%3;
+      setProp(name,'shipStatus',next);
+      bShip.className='badge '+(['','on-blue','on-green'][next]);
+      bShip.textContent='→ '+SHIP_STATES[next];
+    });
+    head.appendChild(bShip);
+    card.appendChild(head);
+
+    // SHIP INFO
+    // 問題2: 自動填入；問題3: 儲存手動填入
+    const shipDiv=document.createElement('div');
+    shipDiv.className='ship-info'+(!hasShipData?' no-ship':'');
+
+    // 追蹤欄位當前值
+    const currentShipVals={...sv};
+
+    function makeShipField(field,label,val,placeholder,extraCls){
+      const div=document.createElement('div');
+      div.className='ship-field'+(val?'':' empty-field');
+      const keyEl=document.createElement('div');keyEl.className='ship-key';
+      const lbl=document.createElement('span');lbl.textContent=label;
+      const cpBtn=document.createElement('button');cpBtn.className='copy-btn';cpBtn.textContent='複製';
+      keyEl.appendChild(lbl);keyEl.appendChild(cpBtn);
+      const inp=document.createElement('input');
+      inp.className='ship-input'+(extraCls?' '+extraCls:'');
+      inp.value=val;inp.placeholder=placeholder;
+      cpBtn.addEventListener('click',()=>copyText(inp.value));
+      inp.addEventListener('input',()=>{
+        currentShipVals[field]=inp.value;
+        div.classList.toggle('empty-field',!inp.value);
+      });
+      div.appendChild(keyEl);div.appendChild(inp);
+      return div;
+    }
+
+    shipDiv.appendChild(makeShipField('real_name','收件人',sv.real_name,'請填寫真實姓名'));
+    shipDiv.appendChild(makeShipField('phone','電話',sv.phone,'請填寫電話號碼'));
+    shipDiv.appendChild(makeShipField('store','全家門市',sv.store,'請填寫門市名稱'));
+    shipDiv.appendChild(makeShipField('store_no','店號',sv.store_no,'6碼數字','mono'));
+    card.appendChild(shipDiv);
+
+    // 問題3: 無收件資料提示 + 儲存按鈕
+    if(!hasShipData){
+      const ni=document.createElement('div');
+      ni.className='no-ship-info';
+      ni.textContent='⚠️ 收件表單查無此帳號，請手動填入';
+      card.appendChild(ni);
+    }
+
+    // COPY ALL + 問題3: 儲存收件資訊按鈕
+    const copyRow=document.createElement('div');copyRow.className='copy-all-row';
+    const copyAllBtn=document.createElement('button');copyAllBtn.className='copy-all-btn';copyAllBtn.textContent='📋 複製全部收件資訊';
+    copyAllBtn.addEventListener('click',()=>{
+      const inputs=shipDiv.querySelectorAll('.ship-input');
+      const labels=['收件人','電話','全家門市','店號'];
+      const vals=Array.from(inputs).map((el,i)=>labels[i]+'：'+el.value);
+      copyText(vals.join('\n'));
+    });
+    copyRow.appendChild(copyAllBtn);
+
+    // 問題3: 儲存收件資訊按鈕
+    const saveShipBtn=document.createElement('button');
+    saveShipBtn.className='save-ship-btn';
+    saveShipBtn.textContent='💾 儲存收件資訊';
+    saveShipBtn.addEventListener('click',async()=>{
+      const toSave={
+        real_name:currentShipVals.real_name||'',
+        phone:currentShipVals.phone||'',
+        store:currentShipVals.store||'',
+        store_no:currentShipVals.store_no||''
+      };
+      await saveManualShip(name,toSave);
+      _manualShipCache[name]=toSave;
+      // 移除「查無此帳號」提示
+      const ni=card.querySelector('.no-ship-info');
+      if(ni) ni.remove();
+      shipDiv.classList.remove('no-ship');
+      toast('✓ 已儲存 '+name+' 的收件資訊');
+    });
+    copyRow.appendChild(saveShipBtn);
+    card.appendChild(copyRow);
+
+    // NOTE ROW
+    const noteRow=document.createElement('div');noteRow.className='note-row';
+    if(autoNote){const at=document.createElement('span');at.className='auto-note-tag';at.textContent='📌 '+autoNote;noteRow.appendChild(at);}
+    const noteInp=document.createElement('input');noteInp.className='note-input';noteInp.value=ps(name).note||'';noteInp.placeholder='新增備註...';
+    noteInp.addEventListener('input',()=>setProp(name,'note',noteInp.value));
+    noteRow.appendChild(noteInp);card.appendChild(noteRow);
+
+    // TABLE
+    card.innerHTML+=
+      '<table><thead><tr><th>團別</th><th>品項</th><th>金額</th></tr></thead><tbody>'+
+      rows.join('')+
+      '<tr class="total-row"><td colspan="2" style="color:#999">小計</td><td class="mono" style="color:#333">NT$ '+total.toLocaleString()+'</td></tr>'+
+      '</tbody></table>';
+
+    cardsEl.appendChild(card);
+  });
+}
+
+function copyText(txt){navigator.clipboard.writeText(txt).then(()=>toast('已複製'));}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+document.getElementById('btnNewProj').addEventListener('click',openNewModal);
+document.getElementById('btnNewProjHome') && document.getElementById('btnNewProjHome').addEventListener('click',openNewModal);
+document.getElementById('btnPrint').addEventListener('click',()=>window.print());
+document.getElementById('searchBox').addEventListener('input',render);
+document.getElementById('searchNote').addEventListener('input',render);
+renderHome();
+</script>
+</body>
+</html>
